@@ -10,17 +10,17 @@
 
 | Mục | Nội dung |
 |-----|----------|
-| Họ và tên | (điền họ tên) |
-| Mã học viên | (điền mã học viên) |
-| Repo | (điền link repo K4-L3B-DAY12-HoVaTen-MSSV-CloudServicesAndDeployment) |
+| Họ và tên | Trần Gia Thành |
+| Mã học viên | 2A202602626 |
+| Repo | https://github.com/GTee2004/K4-L3B-DAY12-TranGiaThanh-2A202602626-CloudServiceAndDeployment |
 
 ## Service
 
 | Mục | Nội dung |
 |-----|----------|
-| Public URL | https://TODO-thay-bang-url-that.up.railway.app |
-| Platform | Railway / Render / Cloud Run — (điền platform bạn dùng) |
-| Ngày deploy | (điền ngày) |
+| Public URL | https://agent-production-7c16.up.railway.app |
+| Platform | Railway / Render / Cloud Run — Railway |
+| Ngày deploy | 29/09/2026 |
 
 ## Biến Môi Trường Đã Set Trên Cloud
 
@@ -30,7 +30,7 @@ Ghi tên biến và **nguồn giá trị**, không ghi giá trị:
 |------|--------|---------|
 | `PORT` | ✅ | platform tự gán |
 | `AGENT_API_KEY` | ✅ | đặt trong dashboard, không nằm trong repo |
-| `REDIS_URL` | ✅ | (điền: Redis add-on của platform / Upstash / ...) |
+| `REDIS_URL` | ✅ | Redis service do Railway cung cấp, gắn vào service agent qua dashboard |
 | `RATE_LIMIT_PER_MINUTE` | ✅ | 10 |
 | `MONTHLY_BUDGET_USD` | ✅ | 10.0 |
 | `LOG_LEVEL` | ✅ | INFO |
@@ -73,7 +73,77 @@ done; echo
 Dán output của các lệnh trên vào đây:
 
 ```
-(điền output)
+# 1. curl -i https://agent-production-7c16.up.railway.app/health
+HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Tue, 29 Sep 2026 04:55:53 GMT
+Server: railway-hikari
+x-railway-request-id: LJH9xiu5RHix0sfd9o6EoQ
+Content-Length: 57
+x-hikari-trace: hkg1.hn7d
+x-railway-edge: hkg1
+Connection: keep-alive
+
+{"status":"ok","service":"day12-agent","version":"1.0.0"}
+
+# 2. curl -i https://agent-production-7c16.up.railway.app/ready
+HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Tue, 29 Sep 2026 04:56:08 GMT
+Server: railway-hikari
+x-railway-request-id: mNJl1xCjTLKCKehF2prcFg
+Content-Length: 31
+x-hikari-trace: hkg1.aebn
+x-railway-edge: hkg1
+Connection: keep-alive
+
+{"status":"ready","redis":true}
+
+# 3.
+curl -i -X POST https://agent-production-7c16.up.railway.app/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Hello"}'
+
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+Date: Tue, 29 Sep 2026 04:56:24 GMT
+Server: railway-hikari
+x-railway-request-id: hPsV8BC6T4WrgRmYnpoFkQ
+Content-Length: 39
+x-hikari-trace: hkg1.aebn
+x-railway-edge: hkg1
+Connection: keep-alive
+
+{"detail":"invalid or missing API key"}
+
+# 4.
+curl -i -X POST https://agent-production-7c16.up.railway.app/ask \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $AGENT_API_KEY" \
+  -H "X-User-Id: sv-test" \
+  -d '{"question":"Deploy là gì?"}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Tue, 29 Sep 2026 04:57:17 GMT
+Server: railway-hikari
+x-railway-request-id: uQAI30-NQJKjhe8M2h0iww
+Content-Length: 344
+x-hikari-trace: hkg1.aebn
+x-railway-edge: hkg1
+vary: accept-encoding
+Connection: keep-alive
+
+{"answer":"Ngắn gọn: Deploy la gi phụ thuộc vào ba yếu tố — cấu hình qua biến môi trường, health check để orchestrator biết trạng thái, và giới hạn tài nguyên. (Mình đang nhớ 4 lượt trao đổi trước đó.)","user_id":"sv-test","history_length":4,"cost_usd":4.23e-05,"tokens":{"in":94,"out":47}}
+
+# 5.
+for i in $(seq 1 15); do
+  curl -s -o /dev/null -w "%{http_code} " -X POST https://agent-production-7c16.up.railway.app/ask \
+    -H "Content-Type: application/json" \
+    -H "X-API-Key: $AGENT_API_KEY" \
+    -H "X-User-Id: sv-test" \
+    -d '{"question":"test"}'
+done; echo
+200 200 200 200 200 200 200 200 200 200 429 429 429 429 429
 ```
 
 ## Ảnh Chụp Màn Hình
@@ -84,18 +154,3 @@ Dán output của các lệnh trên vào đây:
 - `screenshots/health.png` — kết quả gọi `/health` từ trình duyệt hoặc curl
 
 ---
-
-## Nếu Dùng Phương Án Dự Phòng
-
-Không đăng ký được tài khoản cloud? Vẫn nộp được bài, nhưng CP5 tối đa 60% điểm:
-
-1. Đặt `LOCAL_FALLBACK=true` trong `.env`
-2. Chạy `docker compose up -d` rồi kiểm tra `docker compose ps`
-3. Chụp màn hình vào `screenshots/`
-4. Chạy `pytest tests/test_cp5.py -v` — bộ test sẽ tự chuyển sang kiểm tra
-   `http://localhost:8000`
-5. Ghi rõ lý do không deploy được vào phần dưới đây:
-
-```
-(điền lý do nếu dùng phương án dự phòng, ngược lại xóa mục này)
-```
